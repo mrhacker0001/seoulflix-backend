@@ -1,0 +1,43 @@
+// Buni Firebase Console -> Firestore -> Rules ga joylashtiring.
+// Maqsad: dramalar/epizodlarni faqat backend (Admin SDK, qoidalardan chetlanadi) yoza oladi;
+// brauzerdan to'g'ridan-to'g'ri yozish endi bloklanadi.
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /dramas/{dramaId} {
+      allow read: if true;
+      allow write: if false; // faqat backend (Admin SDK) yoza oladi
+
+      match /episodes/{episodeId} {
+        allow read: if true;
+        allow write: if false;
+
+        match /comments/{commentId} {
+          allow read: if true;
+          allow create: if request.auth != null
+                         && request.resource.data.userEmail == request.auth.token.email;
+          allow update, delete: if false;
+        }
+      }
+    }
+
+    match /users/{uid} {
+      // Har kim faqat o'z hujjatini o'qiy oladi; isPremium/role kabi maydonlarni
+      // o'zi o'zgartira olmasligi kerak — shuning uchun write ham backendga tegishli.
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+
+      match /watchLog/{monthKey} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        allow write: if false;
+      }
+    }
+
+    match /orders/{orderId} {
+      allow read: if request.auth != null && resource.data.uid == request.auth.uid;
+      allow write: if false;
+    }
+  }
+}
