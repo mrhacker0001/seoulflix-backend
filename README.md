@@ -41,6 +41,20 @@ Birinchi adminni tayinlash (masalan o'zingizni):
 node src/scripts/setAdmin.js sizning@emailingiz.uz
 ```
 
+## Bunny.net Stream sozlash
+
+1. [bunny.net](https://bunny.net) da ro'yxatdan o'ting, **Stream** bo'limida yangi video kutubxona yarating.
+2. Kutubxona ichida **API** bo'limidan quyidagilarni oling:
+   - Library ID → `BUNNY_STREAM_LIBRARY_ID`
+   - API Key → `BUNNY_STREAM_API_KEY`
+   - Hostname (odatda `vz-xxxxxxx.b-cdn.net`) → `BUNNY_STREAM_HOSTNAME`
+3. Bularni `.env` fayliga qo'shing.
+
+**Muhim:** epizod qo'shishda endi `sourceUrl` maydoniga hozirgi DigitalOcean video linkini kiritasiz —
+qayta yuklashning hojati yo'q, Bunny uni o'zi import qilib, avtomatik HLS (adaptive bitrate) formatga
+o'giradi. Bu jarayon video uzunligiga qarab 1-10 daqiqa davom etadi; shu vaqt ichida foydalanuvchi
+"video qayta ishlanmoqda" degan xabarni ko'radi va u avtomatik yangilanadi.
+
 ## Railway'ga deploy qilish
 
 1. Railway'da yangi loyiha yarating, GitHub repo'ni ulang (yoki `railway up` orqali CLI bilan).
@@ -107,10 +121,8 @@ window.location.href = order.payUrl; // Click checkout sahifasiga o'tkazadi
 
 ## Keyingi bosqichlar (hali qilinmagan)
 
-- [ ] Video HLS + CDN'ga o'tish (hozir `videoId` xom DigitalOcean MP4 linkini qaytaradi —
-      buni signed/short-lived HLS URL'ga almashtirish kerak, xavfsizlik va tezlik uchun)
-- [ ] `AdminAddDrama.jsx` / `AdminAddEpisode.jsx` frontendini to'g'ridan-to'g'ri Firestore o'rniga
-      shu backend API'ga chaqiradigan qilib qayta yozish
-- [ ] `DramaPage.jsx`dagi video pleerni `/api/episodes/.../access` javobiga qarab ishlatish
-      (limitga yetganda Premium sahifasiga yo'naltirish)
+- [x] Video HLS + CDN'ga o'tish - Bunny.net Stream orqali amalga oshirildi
+- [x] `AdminAddDrama.jsx` / `AdminAddEpisode.jsx` backend API'ga ulandi
+- [x] `DramaPage.jsx`dagi video pleer backend access-check javobiga qarab ishlaydi
+- [ ] Eski epizodlarni (agar ko'p bo'lsa) ommaviy Bunny'ga import qilish uchun bir martalik migratsiya skripti
 - [ ] Capacitor bilan ilovaga o'rash
