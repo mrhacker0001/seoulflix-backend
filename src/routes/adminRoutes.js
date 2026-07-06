@@ -71,11 +71,17 @@ router.post("/dramas", async (req, res) => {
 //   sourceUrl - hozirgi DigitalOcean (yoki istalgan ochiq) video linki.
 //   Bu endpoint videoni Bunny Stream'ga import qiladi; transkodlash fonda
 //   boshlanadi (odatda 1-10 daqiqa, video uzunligiga qarab).
+// POST /api/admin/dramas/:dramaId/episodes
+// Body: { episode, season, sourceUrl }  YOKI  { episode, season, bunnyVideoId }
+//   sourceUrl     - hozirgi DigitalOcean (yoki istalgan ochiq) video linki - avtomatik import qilinadi
+//   bunnyVideoId  - agar videoni to'g'ridan-to'g'ri Bunny dashboard orqali qo'lda yuklagan bo'lsangiz
 router.post("/dramas/:dramaId/episodes", async (req, res) => {
   const { dramaId } = req.params;
-  const { episode, season, sourceUrl } = req.body;
+  const { episode, season, sourceUrl, bunnyVideoId: providedBunnyId } = req.body;
 
-  if (!sourceUrl) return res.status(400).json({ error: "sourceUrl majburiy." });
+  if (!sourceUrl && !providedBunnyId) {
+    return res.status(400).json({ error: "sourceUrl yoki bunnyVideoId dan biri majburiy." });
+  }
 
   const dramaRef = db.collection("dramas").doc(dramaId);
   const dramaSnap = await dramaRef.get();
@@ -84,19 +90,33 @@ router.post("/dramas/:dramaId/episodes", async (req, res) => {
   const dramaTitle = dramaSnap.data().title || "SeoulFlix";
   const episodeTitle = `${dramaTitle} - S${season || 1}E${episode}`;
 
-  let bunnyVideoId;
-  try {
-    bunnyVideoId = await bunny.importVideoFromUrl(episodeTitle, sourceUrl);
-  } catch (err) {
-    console.error("Bunny import xatosi:", err.message);
-    return res.status(502).json({ error: "Bunny'ga import qilishda xato: " + err.message });
+  let bunnyVideoId = providedBunnyId;
+  let initialStatus = "processing";
+
+  if (bunnyVideoId) {
+    // Admin qo'lda ID kiritdi - haqiqatan Bunny'da mavjudligini tekshiramiz
+    try {
+      const live = await bunny.getVideoStatus(bunnyVideoId);
+      initialStatus = live.status;
+    } catch (err) {
+      return res.status(400).json({
+        error: "Bunny Video ID topilmadi yoki noto'g'ri. ID'ni Bunny dashboard'dan qaytadan nusxalab ko'ring: " + err.message,
+      });
+    }
+  } else {
+    try {
+      bunnyVideoId = await bunny.importVideoFromUrl(episodeTitle, sourceUrl);
+    } catch (err) {
+      console.error("Bunny import xatosi:", err.message);
+      return res.status(502).json({ error: "Bunny'ga import qilishda xato: " + err.message });
+    }
   }
 
   const epRef = await dramaRef.collection("episodes").add({
     episode: Number(episode),
     season: Number(season || 1),
     bunnyVideoId,
-    bunnyStatus: "processing",
+    bunnyStatus: initialStatus,
     views: 0,
     likesCount: 0,
     commentsCount: 0,
@@ -115,11 +135,7 @@ router.post("/dramas/:dramaId/episodes", async (req, res) => {
     read: false,
   });
 
-  res.json({
-    id: epRef.id,
-    bunnyVideoId,
-    message: "Video Bunny'ga yuborildi, transkodlash boshlandi. Holatni /status orqali tekshiring.",
-  });
+  res.json({ id: epRef.id, bunnyVideoId, status: initialStatus });
 });
 
 // GET /api/admin/dramas/:dramaId/episodes/:episodeId/status
