@@ -8,7 +8,7 @@ const { auth, db } = require("../config/firebaseAdmin");
 async function main() {
   const email = process.argv[2];
   if (!email) {
-    console.error("Foydalanish: node src/scripts/setAdmin.js someone@example.com");
+    console.error("Foydalanish: node src/scripts/setAdmin.js azwebdanaterrr@gmail.com");
     process.exit(1);
   }
 
